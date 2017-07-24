@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE
 
+import itertools
 import requests
 import smtplib
 
@@ -142,6 +143,10 @@ def parse_available_trains(trains_list):
         trains = len(trains_list)
 
 
+def print_iteration_data():
+    print('#', attempt)
+    print('Time', time.strftime('%H:%M (%d.%m.%Y)'))  # 'Mon Oct 18 13:35:29 2010'
+
 if __name__ == '__main__':
     city_from = form_data['station_from']
     city_to = form_data['station_till']
@@ -154,7 +159,8 @@ if __name__ == '__main__':
         'annkorn13@gmail.com'
     ]
 
-    while True:
+    for attempt in itertools.count(1):
+        print_iteration_data()
         print(f'Search for tickets {city_from} -> {city_to} at {date_dep}')
         response = send_data_request()
         parse_available_trains(response)
