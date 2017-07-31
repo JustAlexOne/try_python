@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import argparse
 import json
+import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE
@@ -148,9 +149,20 @@ def print_iteration_data():
     print('Time', time.strftime('%H:%M (%d.%m.%Y)'))  # 'Mon Oct 18 13:35:29 2010'
 
 if __name__ == '__main__':
-    city_from = form_data['station_from']
-    city_to = form_data['station_till']
-    date_dep = form_data['date_dep']
+
+    parser = argparse.ArgumentParser(prog='pz_script')
+    parser.add_argument('--date', '-d', help='please set a date using rather "-d" or "--date"', required=True)
+    parser.add_argument('--fromC', '-f', help='please set a city "FROM" using rather "-f" or "--from"', required=True)
+    parser.add_argument('--to', '-t', help='please set a city "TO" using rather "-t" or "--to"', required=True)
+    arguments = parser.parse_args()
+
+    city_from = arguments.fromC
+    city_to = arguments.to
+    date_dep = arguments.date
+    date_regex = '^\d{1,2}\.\d{1,2}\.\d{4}$'
+    if not re.match(date_regex, date_dep):
+        raise ValueError('Incorrect date input [{0}]. Should be in format "DD.MM.YYYY", e.g. "13.08.2017"'.format(date_dep))
+
 
     creds = ('ukrnat19@gmail.com', 'ukrnat1991')
     recipients = [
@@ -161,19 +173,28 @@ if __name__ == '__main__':
 
     for attempt in itertools.count(1):
         print_iteration_data()
-        print(f'Search for tickets {city_from} -> {city_to} at {date_dep}')
-        response = send_data_request()
-        parse_available_trains(response)
-        new_places = parse_places(response)
+        try:
+            print(f'Searching tickets for {date_dep} from "{city_from}" to "{city_to}"')
 
-        if not old_places:
-            old_places = new_places
-            continue
-        if old_places != new_places:
-            print("Hooray! Updates found! :)")
-            print(create_msg_text(new_places, None))
-            send_email(new_places, None)
-            old_places = new_places
-        else:
-            print('No updates found')
+            response = send_data_request()
+            if 'Сервіс тимчасово недоступний.' in response:
+                print('Service unavailable')
+                wait(mins_wait * 60)
+                continue
+
+            parse_available_trains(response)
+            new_places = parse_places(response)
+
+            if not old_places:
+                old_places = new_places
+                continue
+            if old_places != new_places:
+                print("Hooray! Updates found! :)")
+                print(create_msg_text(new_places, None))
+                send_email(new_places, None)
+                old_places = new_places
+            else:
+                print('No updates found')
+        except Exception as e:
+            print('Caught exception', e.message)
         wait(mins_wait * 60)
