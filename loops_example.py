@@ -14,3 +14,13 @@ while(not(random_num == 5)):
 # while(random_num != 15):
     print(random_num)
     random_num = random.randrange(0,10)
+
+some_list = [
+    "A",
+    "A",
+    "B",
+    "C",
+]
+
+for index, element in enumerate(some_list):
+    print('{0} {1}'.format(index, element))
